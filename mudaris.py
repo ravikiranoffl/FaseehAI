@@ -3,13 +3,15 @@ import re
 import glob
 from datetime import datetime
 import requests
-import google.generativeai as genai
+from google import genai
 from gtts import gTTS
 
 # --- 1. SETUP & CREDENTIALS ---
-genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
+
+# Initialize the new Google GenAI client
+client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
 def main():
     # --- 2. READ YESTERDAY'S LESSON ---
@@ -25,10 +27,13 @@ def main():
     with open('prompt.txt', 'r', encoding='utf-8') as f:
         master_prompt = f.read()
 
-    model = genai.GenerativeModel('gemini-2.5-pro')
     full_prompt = f"{master_prompt}\n\n### YESTERDAY'S LESSON:\n{yesterdays_lesson}\n\nGenerate today's lesson now."
     
-    response = model.generate_content(full_prompt)
+    # Using the new SDK and the Flash model to avoid free-tier quota limits
+    response = client.models.generate_content(
+        model='gemini-2.5-flash',
+        contents=full_prompt,
+    )
     generated_text = response.text
 
     # --- 4. EXTRACT AUDIO & CLEAN TEXT ---
